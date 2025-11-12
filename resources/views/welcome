@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>deiSign | Interactive Document Signing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+        }
+        
+        .signature-demo {
+            background: linear-gradient(45deg, #f3f4f6 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f3f4f6 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f3f4f6 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f3f4f6 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+        
+        .backdrop {
+            display: none;
+        }
+        
+        .backdrop.active {
+            display: block;
+        }
+        
+        .signature-canvas {
+            border: 1px dashed #cbd5e0;
+            background-color: #f8fafc;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        
+        .document-preview {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone.active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .signature-pad-container {
+            position: relative;
+        }
+        
+        .signature-line {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            right: 20px;
+            height: 1px;
+            background: repeating-linear-gradient(90deg, #000, #000 5px, transparent 5px, transparent 10px);
+        }
+        
+        .date-field {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            width: 120px;
+            border-bottom: 1px solid #cbd5e0;
+            text-align: center;
+            padding-bottom: 2px;
+        }
+        
+        #signatureCanvas {
+            width: 100%;
+            height: 150px;
+        }
+        
+        .draggable {
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .draggable:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .draggable.dragging {
+            opacity: 0.8;
+            z-index: 1000;
+        }
+        
+        .drop-area {
+            position: relative;
+            min-height: 600px;
+        }
+        
+        .dropped-item {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            background-color: transparent !important;
+        }
+        
+        .dropped-signature {
+            border: 1px dashed transparent;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        
+        .dropped-date {
+            border: 1px dashed transparent;
+            padding: 5px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .dropped-item:hover .delete-btn {
+            opacity: 1;
+        }
+        
+        .dropped-item:hover {
+            border-color: #3b82f6;
+        }
+        
+        .tools-panel {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        /* Transparent background for dragged elements */
+        .transparent-drag {
+            background-color: transparent !important;
+            border: 1px dashed #3b82f6;
+        }
+        
+        .transparent-drag img {
+            background-color: transparent;
+        }
+        
+        .transparent-drag div {
+            background-color: transparent;
+        }
+        
+        /* Download modal styles */
+        .download-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .download-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .download-option {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .download-option:hover {
+            border-color: #3b82f6;
+            background-color: #f8fafc;
+        }
+        
+        .download-option.selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-file-signature text-purple-600 text-2xl"></i>
+                <h1 class="text-xl font-bold text-gray-800">deiSign</h1>
+            </div>
+            
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-8">
+                <a href="#features" class="text-gray-600 hover:text-purple-600 font-medium">Features</a>
+                <a href="#how-it-works" class="text-gray-600 hover:text-purple-600 font-medium">How It Works</a>
+                <a href="#demo" class="text-gray-600 hover:text-purple-600 font-medium">Try Demo</a>
+                <a href="#testimonials" class="text-gray-600 hover:text-purple-600 font-medium">Testimonials</a>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-4">
+                <a href="#" class="text-gray-600 hover:text-purple-600 font-medium">Log In</a>
+                <button class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                    Get Started Free
+                </button>
+            </div>
+            
+            <!-- Mobile Menu Button -->
+            <button id="mobileMenuButton" class="md:hidden text-gray-600">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="mobile-menu fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-50 p-6">
+            <div class="flex justify-between items-center mb-8">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-file-signature text-purple-600 text-2xl"></i>
+                    <h1 class="text-xl font-bold text-gray-800">deiSign</h1>
+                </div>
+                <button id="closeMenuButton" class="text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <a href="#features" class="block text-gray-600 hover:text-purple-600 font-medium">Features</a>
+                <a href="#how-it-works" class="block text-gray-600 hover:text-purple-600 font-medium">How It Works</a>
+                <a href="#demo" class="block text-gray-600 hover:text-purple-600 font-medium">Try Demo</a>
+                <a href="#testimonials" class="block text-gray-600 hover:text-purple-600 font-medium">Testimonials</a>
+                
+                <div class="pt-4 border-t border-gray-200">
+                    <a href="#" class="block text-gray-600 hover:text-purple-600 font-medium mb-4">Log In</a>
+                    <button class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                        Get Started Free
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Backdrop for mobile menu -->
+        <div id="backdrop" class="backdrop fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white">
+  <div class="container mx-auto px-4 py-16 md:py-24">
+    <div class="max-w-3xl mx-auto text-center">
+      <h1 class="text-4xl md:text-5xl font-bold mb-6">
+        Sign Documents Online. No Printing. No Scanning.
+      </h1>
+      <p class="text-xl mb-8 opacity-90">
+        Upload, sign, and share documents digitally with deiSign. The fastest way to get documents signed.
+      </p>
+
+      <!-- Visual Process Steps -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between max-w-md mx-auto mb-2">
+          <div class="text-center flex-1">
+            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-upload text-white"></i>
+            </div>
+            <p class="font-semibold text-sm">Upload PDF</p>
+          </div>
+          <div class="flex-1 flex justify-center">
+            <i class="fas fa-arrow-right text-white opacity-50 text-xl"></i>
+          </div>
+          <div class="text-center flex-1">
+            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-pen text-white"></i>
+            </div>
+            <p class="font-semibold text-sm">Sign</p>
+          </div>
+          <div class="flex-1 flex justify-center">
+            <i class="fas fa-arrow-right text-white opacity-50 text-xl"></i>
+          </div>
+          <div class="text-center flex-1">
+            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-download text-white"></i>
+            </div>
+            <p class="font-semibold text-sm">Download</p>
+          </div>
+        </div>
+        <div class="text-center text-sm opacity-80 mt-2">
+          Complete in under 2 minutes
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <button class="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+          Start Free Trial
+        </button>
+        <a
+          href="#demo"
+          class="bg-transparent border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:bg-opacity-10 transition text-center"
+        >
+          Try Interactive Demo
+        </a>
+      </div>
+      <p class="mt-4 text-sm opacity-80">
+        No credit card required. Free for up to 3 documents per month.
+      </p>
+    </div>
+  </div>
+</section>
+
+    <!-- Interactive Demo Section -->
+
+    <section id="demo" class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">Try Our Interactive Demo</h2>
+        <p class="text-xl text-center text-gray-600 max-w-2xl mx-auto mb-12">Upload your PDF, then drag and drop signatures anywhere on the document!</p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <!-- Signing Tools Panel -->
+            <div class="lg:col-span-1 bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 tools-panel">
+                <!-- PDF Upload Section -->
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-2">Upload PDF Document</h4>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors cursor-pointer" id="uploadArea">
+                        <i class="fas fa-file-pdf text-3xl text-red-500 mb-2"></i>
+                        <p class="text-gray-600 mb-1">Click to upload PDF</p>
+                        <p class="text-gray-500 text-sm">or drag and drop your file here</p>
+                        <input type="file" id="pdfUpload" accept=".pdf" class="hidden">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Max file size: 10MB</p>
+                </div>
+
+                <!-- Draw Signature -->
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-2">Draw Signature</h4>
+                    <canvas id="signatureCanvas" class="signature-canvas rounded-lg w-full mb-2"></canvas>
+                    <div class="flex justify-between">
+                        <button id="clearSignature" class="text-gray-600 hover:text-purple-600">
+                            <i class="fas fa-undo mr-1"></i> Clear
+                        </button>
+                        <button id="createSignature" class="bg-purple-600 text-white px-4 py-1 rounded-lg text-sm hover:bg-purple-700 transition">
+                            Create Signature
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Type Signature -->
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-2">Type Signature</h4>
+                    <input type="text" id="typedSignature" placeholder="Enter your name" class="w-full border border-gray-300 rounded-lg px-4 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500" value="Joshua Deinne">
+                    <div class="flex space-x-2 mb-2">
+                        <button class="font-style-btn border border-gray-300 rounded-lg px-3 py-1 text-sm hover:bg-gray-50 active-font" data-font="cursive">Cursive</button>
+                        <button class="font-style-btn border border-gray-300 rounded-lg px-3 py-1 text-sm hover:bg-gray-50" data-font="sans">Sans</button>
+                        <button class="font-style-btn border border-gray-300 rounded-lg px-3 py-1 text-sm hover:bg-gray-50" data-font="serif">Serif</button>
+                    </div>
+                    <button id="createTypedSignature" class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
+                        Create Typed Signature
+                    </button>
+                </div>
+
+                <!-- Add Date -->
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-2">Add Date</h4>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="dateField" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" readonly>
+                        <button id="createDate" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
+                            Create Date
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Draggable Elements -->
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="font-medium text-gray-700 mb-2">Drag & Drop Elements</h4>
+                    <p class="text-sm text-gray-500 mb-4">Drag these elements to the document:</p>
+                    
+                    <div id="draggableElements" class="space-y-3">
+                        <!-- Elements will be added here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="border-t border-gray-200 pt-4 mt-4">
+                    <button id="resetDocument" class="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition mb-2">
+                        <i class="fas fa-redo mr-1"></i> Reset Document
+                    </button>
+                    <button id="downloadDocument" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition">
+                        <i class="fas fa-download mr-1"></i> Download Signed Document
+                    </button>
+                </div>
+            </div>
+
+            <!-- Document Preview -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">Document Preview</h3>
+                        <div class="flex space-x-2">
+                            <button class="text-gray-500 hover:text-purple-600 p-2 rounded">
+                                <i class="fas fa-print"></i>
+                            </button>
+                            <button class="text-gray-500 hover:text-purple-600 p-2 rounded">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="document-preview bg-gray-100 rounded-lg p-4 h-[600px] overflow-auto relative drop-area" id="documentDropArea">
+                        <!-- Default demo content (shown when no PDF is uploaded) -->
+                        <div id="defaultDocument" class="bg-white p-6 rounded-lg shadow-sm max-w-3xl mx-auto min-h-full relative">
+                            <div class="text-center py-20">
+                                <i class="fas fa-file-pdf text-6xl text-gray-300 mb-4"></i>
+                                <h3 class="text-xl font-semibold text-gray-600 mb-2">No Document Uploaded</h3>
+                                <p class="text-gray-500">Upload a PDF document to get started with signing</p>
+                            </div>
+                        </div>
+
+                        <!-- PDF Display Area (shown when PDF is uploaded) -->
+                        <div id="pdfDocument" class="hidden bg-white rounded-lg shadow-sm max-w-3xl mx-auto min-h-full relative">
+                            <!-- PDF pages will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// PDF Upload Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const pdfUpload = document.getElementById('pdfUpload');
+    const defaultDocument = document.getElementById('defaultDocument');
+    const pdfDocument = document.getElementById('pdfDocument');
+    const documentDropArea = document.getElementById('documentDropArea');
+
+    // Click to upload
+    uploadArea.addEventListener('click', function() {
+        pdfUpload.click();
+    });
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('border-purple-400', 'bg-purple-50');
+    });
+
+    uploadArea.addEventListener('dragleave', function() {
+        uploadArea.classList.remove('border-purple-400', 'bg-purple-50');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('border-purple-400', 'bg-purple-50');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type === 'application/pdf') {
+            handlePDFUpload(files[0]);
+        } else {
+            alert('Please upload a PDF file');
+        }
+    });
+
+    // File input change
+    pdfUpload.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handlePDFUpload(e.target.files[0]);
+        }
+    });
+
+    function handlePDFUpload(file) {
+        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            alert('File size must be less than 10MB');
+            return;
+        }
+
+        // Show loading state
+        uploadArea.innerHTML = `
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                <p class="text-gray-600">Processing PDF...</p>
+            </div>
+        `;
+
+        // Simulate PDF processing (in a real app, you would use PDF.js or similar)
+        setTimeout(() => {
+            // Display the uploaded PDF
+            displayPDFPreview(file.name);
+            
+            // Reset upload area
+            uploadArea.innerHTML = `
+                <i class="fas fa-file-pdf text-3xl text-green-500 mb-2"></i>
+                <p class="text-gray-600 mb-1">PDF Uploaded Successfully!</p>
+                <p class="text-green-600 text-sm">${file.name}</p>
+                <button class="mt-2 text-purple-600 text-sm hover:text-purple-700" onclick="uploadNewPDF()">
+                    Upload different file
+                </button>
+            `;
+        }, 1500);
+    }
+
+    // Function to display PDF preview
+    function displayPDFPreview(filename) {
+        // Hide default document, show PDF document
+        defaultDocument.classList.add('hidden');
+        pdfDocument.classList.remove('hidden');
+        
+        // In a real implementation, you would use PDF.js to render the PDF
+        // For this demo, we'll create a simulated PDF view
+        pdfDocument.innerHTML = `
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">${filename}</h3>
+                    <span class="text-sm text-gray-500">Page 1 of 1</span>
+                </div>
+                
+                <!-- Simulated PDF Page -->
+                <div class="bg-white border border-gray-200 rounded shadow-sm p-8 mx-auto" style="max-width: 800px; min-height: 800px;">
+                    <div class="text-center mb-8">
+                        <h1 class="text-2xl font-bold text-gray-800">UPLOADED DOCUMENT</h1>
+                        <p class="text-gray-600 mt-2">This is a preview of your uploaded PDF</p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">Document Information</h2>
+                        <p class="text-gray-700 mb-4">
+                            This document was uploaded for digital signing. You can now add your signature and date to complete the signing process.
+                        </p>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <p class="text-sm text-gray-600">File Name:</p>
+                                <p class="font-medium">${filename}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Upload Date:</p>
+                                <p class="font-medium">${new Date().toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Signature areas for the uploaded document -->
+                    <div class="mt-12 pt-8 border-t border-gray-300">
+                        <div class="flex flex-col md:flex-row justify-between">
+                            <div class="mb-6 md:mb-0 md:w-1/2">
+                                <p class="text-gray-700 mb-2"><strong>Signature</strong></p>
+                                <div class="signature-pad-container h-24 border border-gray-300 rounded bg-white relative">
+                                    <div class="signature-line"></div>
+                                    <div class="absolute inset-0 flex items-center justify-center p-4">
+                                        <p class="text-gray-500 text-sm">Drag signature here</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="md:w-1/2">
+                                <p class="text-gray-700 mb-2"><strong>Date</strong></p>
+                                <div class="date-field bg-white p-2 border border-gray-300 rounded text-center">
+                                    <span class="text-gray-500">Drag date here</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Make the new document area droppable
+        const newDocumentContent = pdfDocument.querySelector('.bg-white.border');
+        if (newDocumentContent) {
+            // Re-initialize drop functionality for the new document
+            initializeDropArea(newDocumentContent);
+        }
+    }
+
+    // Function to upload a new PDF
+    window.uploadNewPDF = function() {
+        // Reset to initial state
+        uploadArea.innerHTML = `
+            <i class="fas fa-file-pdf text-3xl text-red-500 mb-2"></i>
+            <p class="text-gray-600 mb-1">Click to upload PDF</p>
+            <p class="text-gray-500 text-sm">or drag and drop your file here</p>
+            <input type="file" id="pdfUpload" accept=".pdf" class="hidden">
+        `;
+        
+        // Show default document, hide PDF document
+        defaultDocument.classList.remove('hidden');
+        pdfDocument.classList.add('hidden');
+        
+        // Re-attach event listeners
+        const newPdfUpload = document.getElementById('pdfUpload');
+        newPdfUpload.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                handlePDFUpload(e.target.files[0]);
+            }
+        });
+    };
+
+    // Initialize drop area for signatures
+    function initializeDropArea(area) {
+        area.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        area.addEventListener('drop', function(e) {
+            e.preventDefault();
+            
+            if (!window.draggedElement) return;
+            
+            const rect = area.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const droppedItem = document.createElement('div');
+            droppedItem.className = 'dropped-item transparent-drag';
+            droppedItem.style.left = `${x}px`;
+            droppedItem.style.top = `${y}px`;
+            
+            const type = window.draggedElement.getAttribute('data-type');
+            
+            if (type === 'signature') {
+                droppedItem.classList.add('dropped-signature');
+                droppedItem.innerHTML = `
+                    ${window.draggedElement.innerHTML}
+                    <div class="delete-btn">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+            } else if (type === 'typed-signature') {
+                droppedItem.classList.add('dropped-signature');
+                droppedItem.innerHTML = `
+                    ${window.draggedElement.innerHTML}
+                    <div class="delete-btn">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+            } else if (type === 'date') {
+                droppedItem.classList.add('dropped-date');
+                droppedItem.innerHTML = `
+                    ${window.draggedElement.innerHTML}
+                    <div class="delete-btn">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+            }
+            
+            // Make dropped items draggable
+            makeDroppedItemDraggable(droppedItem);
+            area.appendChild(droppedItem);
+        });
+    }
+
+    // Initialize the default drop area
+    initializeDropArea(documentDropArea);
+});
+
+// Make sure to update the existing makeDroppedItemDraggable function to work with the new structure
+function makeDroppedItemDraggable(element) {
+    let isDragging = false;
+    let offsetX, offsetY;
+    
+    element.addEventListener('mousedown', function(e) {
+        if (e.target.classList.contains('delete-btn')) return;
+        
+        isDragging = true;
+        offsetX = e.offsetX;
+        offsetY = e.offsetY;
+        element.style.zIndex = '1000';
+        document.body.style.userSelect = 'none';
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        
+        const parent = element.parentElement;
+        const rect = parent.getBoundingClientRect();
+        const x = e.clientX - rect.left - offsetX;
+        const y = e.clientY - rect.top - offsetY;
+        
+        // Constrain to parent area
+        const maxX = parent.offsetWidth - element.offsetWidth;
+        const maxY = parent.offsetHeight - element.offsetHeight;
+        
+        element.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
+        element.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+    });
+    
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        element.style.zIndex = '';
+        document.body.style.userSelect = '';
+    });
+    
+    // Delete button functionality
+    const deleteBtn = element.querySelector('.delete-btn');
+    deleteBtn.addEventListener('click', function() {
+        element.remove();
+    });
+}
+</script>
+
+    <!-- Download Modal -->
+    <div id="downloadModal" class="download-modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Download Signed Document</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="downloadOptions">
+                <div class="download-option selected" data-format="pdf">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-file-pdf text-red-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">PDF Document</h4>
+                            <p class="text-gray-600 text-sm">High-quality PDF with embedded signatures</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="download-option" data-format="image">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-file-image text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Image (PNG)</h4>
+                            <p class="text-gray-600 text-sm">High-resolution image of the signed document</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="loading-spinner" id="loadingSpinner">
+                <div class="spinner"></div>
+                <p class="text-gray-600">Preparing your document for download...</p>
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="cancelDownload" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                    Cancel
+                </button>
+                <button id="confirmDownload" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    <i class="fas fa-download mr-2"></i>Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">Everything You Need for Digital Signatures</h2>
+            <p class="text-xl text-center text-gray-600 max-w-2xl mx-auto mb-12">Streamline your document workflow with our powerful e-signature solution.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-upload text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Easy Upload</h3>
+                    <p class="text-gray-600">Upload documents in multiple formats including PDF, Word, and images.</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="feature-card bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-pen text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Multiple Signing Options</h3>
+                    <p class="text-gray-600">Draw, type, or upload your signature. Customize it to match your style.</p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="feature-card bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-share-square text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Easy Sharing</h3>
+                    <p class="text-gray-600">Share signed documents via email, link, or directly to cloud storage.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 gradient-bg text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-4">Ready to Go Paperless?</h2>
+            <p class="text-xl max-w-2xl mx-auto mb-8 opacity-90">Join thousands of businesses and individuals who have streamlined their document signing process with deiSign.</p>
+            <button class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition">
+                Get Started Free
+            </button>
+            <p class="mt-4 text-sm opacity-80">No credit card required. Free plan includes 3 documents per month.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fas fa-file-signature text-purple-400 text-2xl"></i>
+                        <h1 class="text-xl font-bold">deiSign</h1>
+                    </div>
+                    <p class="text-gray-400">The easiest way to sign documents online. No printing, no scanning.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold text-lg mb-4">Product</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Features</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Pricing</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Use Cases</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold text-lg mb-4">Company</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold text-lg mb-4">Legal</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2023 deiSign. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu functionality
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const closeMenuButton = document.getElementById('closeMenuButton');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const backdrop = document.getElementById('backdrop');
+        
+        function openMobileMenu() {
+            mobileMenu.classList.add('active');
+            backdrop.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('active');
+            backdrop.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        mobileMenuButton.addEventListener('click', openMobileMenu);
+        closeMenuButton.addEventListener('click', closeMobileMenu);
+        backdrop.addEventListener('click', closeMobileMenu);
+        
+        // Close mobile menu when clicking on a menu item
+        const mobileMenuItems = document.querySelectorAll('#mobileMenu a');
+        mobileMenuItems.forEach(item => {
+            item.addEventListener('click', closeMobileMenu);
+        });
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Signature functionality
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        // Set canvas size properly
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            
+            ctx.scale(dpr, dpr);
+            
+            // Set line properties
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#000';
+            
+            // Clear with white background
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Initialize canvas
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            e.preventDefault();
+            
+            const [x, y] = getCoordinates(e);
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            
+            [lastX, lastY] = [x, y];
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        function getCoordinates(e) {
+            let clientX, clientY;
+            
+            if (e.type.includes('touch')) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const rect = canvas.getBoundingClientRect();
+            return [
+                clientX - rect.left,
+                clientY - rect.top
+            ];
+        }
+        
+        // Event listeners for drawing
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            startDrawing(e);
+        });
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            draw(e);
+        });
+        canvas.addEventListener('touchend', stopDrawing);
+        
+        // Clear signature
+        document.getElementById('clearSignature').addEventListener('click', function() {
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+        
+        // Set current date
+        const today = new Date();
+        const formattedDate = today.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        document.getElementById('dateField').value = formattedDate;
+        
+        // Font style buttons
+        document.querySelectorAll('.font-style-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('.font-style-btn').forEach(btn => {
+                    btn.classList.remove('active-font', 'bg-purple-100', 'border-purple-500');
+                });
+                
+                // Add active class to clicked button
+                this.classList.add('active-font', 'bg-purple-100', 'border-purple-500');
+                
+                const font = this.getAttribute('data-font');
+                const input = document.getElementById('typedSignature');
+                
+                if (font === 'cursive') {
+                    input.style.fontFamily = 'cursive';
+                    input.style.fontStyle = 'italic';
+                } else if (font === 'sans') {
+                    input.style.fontFamily = 'sans-serif';
+                    input.style.fontStyle = 'normal';
+                } else if (font === 'serif') {
+                    input.style.fontFamily = 'serif';
+                    input.style.fontStyle = 'normal';
+                }
+            });
+        });
+        
+        // Set cursive as default
+        document.querySelector('.font-style-btn[data-font="cursive"]').click();
+        
+        // Draggable elements functionality
+        const draggableElements = document.getElementById('draggableElements');
+        const documentDropArea = document.getElementById('documentDropArea');
+        const documentContent = document.getElementById('documentContent');
+        let draggedElement = null;
+        
+        // Create a draggable signature from canvas
+        document.getElementById('createSignature').addEventListener('click', function() {
+            // Check if canvas has any drawing
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let isEmpty = true;
+            
+            for (let i = 3; i < imageData.data.length; i += 4) {
+                if (imageData.data[i] !== 0) {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            
+            if (isEmpty) {
+                alert('Please draw a signature first');
+                return;
+            }
+            
+            const dataURL = canvas.toDataURL();
+            createDraggableElement('signature', dataURL);
+        });
+        
+        // Create a draggable typed signature
+        document.getElementById('createTypedSignature').addEventListener('click', function() {
+            const signatureText = document.getElementById('typedSignature').value;
+            
+            if (!signatureText) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            createDraggableElement('typed-signature', signatureText);
+        });
+        
+        // Create a draggable date
+        document.getElementById('createDate').addEventListener('click', function() {
+            createDraggableElement('date', formattedDate);
+        });
+        
+        // Create a draggable element
+        function createDraggableElement(type, content) {
+            const element = document.createElement('div');
+            element.className = 'draggable bg-white p-3 rounded-lg border border-gray-300 shadow-sm';
+            element.setAttribute('data-type', type);
+            element.draggable = true;
+            
+            if (type === 'signature') {
+                element.innerHTML = `
+                    <div class="flex items-center">
+                        <img src="${content}" alt="Signature" class="h-8 mr-2">
+                        <span class="text-sm font-medium">Signature</span>
+                    </div>
+                `;
+            } else if (type === 'typed-signature') {
+                const fontFamily = document.getElementById('typedSignature').style.fontFamily || 'cursive';
+                const fontStyle = document.getElementById('typedSignature').style.fontStyle || 'italic';
+                
+                element.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="h-8 flex items-center justify-center mr-2" style="font-family: ${fontFamily}; font-style: ${fontStyle};">
+                            ${content}
+                        </div>
+                        <span class="text-sm font-medium">Typed Signature</span>
+                    </div>
+                `;
+            } else if (type === 'date') {
+                element.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="h-8 flex items-center justify-center mr-2 font-medium">
+                            ${content}
+                        </div>
+                        <span class="text-sm font-medium">Date</span>
+                    </div>
+                `;
+            }
+            
+            // Add drag event listeners
+            element.addEventListener('dragstart', handleDragStart);
+            element.addEventListener('dragend', handleDragEnd);
+            
+            draggableElements.appendChild(element);
+        }
+        
+        // Handle drag start
+        function handleDragStart(e) {
+            draggedElement = this.cloneNode(true);
+            draggedElement.classList.add('dragging', 'transparent-drag');
+            
+            // Store the type and content
+            const type = this.getAttribute('data-type');
+            draggedElement.setAttribute('data-type', type);
+            
+            if (type === 'signature') {
+                const img = this.querySelector('img');
+                draggedElement.innerHTML = `<img src="${img.src}" alt="Signature" class="h-12">`;
+            } else if (type === 'typed-signature') {
+                const text = this.querySelector('div').textContent;
+                const fontFamily = document.getElementById('typedSignature').style.fontFamily || 'cursive';
+                const fontStyle = document.getElementById('typedSignature').style.fontStyle || 'italic';
+                
+                draggedElement.innerHTML = `
+                    <div style="font-family: ${fontFamily}; font-style: ${fontStyle}; font-size: 1.2rem;">
+                        ${text}
+                    </div>
+                `;
+            } else if (type === 'date') {
+                const date = this.querySelector('div').textContent;
+                draggedElement.innerHTML = `
+                    <div class="font-medium text-lg">
+                        ${date}
+                    </div>
+                `;
+            }
+            
+            draggedElement.style.position = 'absolute';
+            draggedElement.style.zIndex = '1000';
+            draggedElement.style.backgroundColor = 'transparent';
+            document.body.appendChild(draggedElement);
+            
+            // Set drag image
+            e.dataTransfer.setDragImage(draggedElement, 0, 0);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        
+        // Handle drag end
+        function handleDragEnd(e) {
+            if (draggedElement) {
+                document.body.removeChild(draggedElement);
+                draggedElement = null;
+            }
+        }
+        
+        // Set up drop area
+        documentDropArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+        
+        documentDropArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            
+            if (!draggedElement) return;
+            
+            const rect = documentDropArea.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const droppedItem = document.createElement('div');
+            droppedItem.className = 'dropped-item transparent-drag';
+            droppedItem.style.left = `${x}px`;
+            droppedItem.style.top = `${y}px`;
+            
+            const type = draggedElement.getAttribute('data-type');
+            
+            if (type === 'signature') {
+                droppedItem.classList.add('dropped-signature');
+                droppedItem.innerHTML = `
+                    ${draggedElement.innerHTML}
+                    <div class="delete-btn">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+            } else if (type === 'typed-signature') {
+                droppedItem.classList.add('dropped-signature');
+                droppedItem.innerHTML = `
+                    ${draggedElement.innerHTML}
+                    <div class="delete-btn">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+            } else if (type === 'date') {
+                droppedItem.classList.add('dropped-date');
+                droppedItem.innerHTML = `
+                    ${draggedElement.innerHTML}
+                    <div class="delete-btn">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+            }
+            
+            // Make dropped items draggable
+            makeDroppedItemDraggable(droppedItem);
+            
+            documentContent.appendChild(droppedItem);
+        });
+        
+        // Make dropped items draggable
+        function makeDroppedItemDraggable(element) {
+            let isDragging = false;
+            let offsetX, offsetY;
+            
+            element.addEventListener('mousedown', function(e) {
+                if (e.target.classList.contains('delete-btn')) return;
+                
+                isDragging = true;
+                offsetX = e.offsetX;
+                offsetY = e.offsetY;
+                element.style.zIndex = '1000';
+                document.body.style.userSelect = 'none';
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const rect = documentDropArea.getBoundingClientRect();
+                const x = e.clientX - rect.left - offsetX;
+                const y = e.clientY - rect.top - offsetY;
+                
+                // Constrain to document area
+                const maxX = documentContent.offsetWidth - element.offsetWidth;
+                const maxY = documentContent.offsetHeight - element.offsetHeight;
+                
+                element.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
+                element.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+            });
+            
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+                element.style.zIndex = '';
+                document.body.style.userSelect = '';
+            });
+            
+            // Delete button functionality
+            const deleteBtn = element.querySelector('.delete-btn');
+            deleteBtn.addEventListener('click', function() {
+                element.remove();
+            });
+        }
+        
+        // Reset document
+        document.getElementById('resetDocument').addEventListener('click', function() {
+            const droppedItems = documentContent.querySelectorAll('.dropped-item');
+            droppedItems.forEach(item => item.remove());
+            
+            draggableElements.innerHTML = '';
+            
+            // Clear the canvas
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+        
+        // Download functionality
+        const downloadModal = document.getElementById('downloadModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelDownload = document.getElementById('cancelDownload');
+        const confirmDownload = document.getElementById('confirmDownload');
+        const downloadOptions = document.querySelectorAll('.download-option');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        
+        let selectedFormat = 'pdf';
+        
+        // Download modal handlers
+        document.getElementById('downloadDocument').addEventListener('click', function() {
+            const droppedItems = documentContent.querySelectorAll('.dropped-item');
+            
+            if (droppedItems.length === 0) {
+                alert('Please add at least one signature or date before downloading');
+                return;
+            }
+            
+            downloadModal.classList.add('active');
+        });
+        
+        closeModal.addEventListener('click', function() {
+            downloadModal.classList.remove('active');
+        });
+        
+        cancelDownload.addEventListener('click', function() {
+            downloadModal.classList.remove('active');
+        });
+        
+        // Download option selection
+        downloadOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                downloadOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedFormat = this.getAttribute('data-format');
+            });
+        });
+        
+        // Confirm download
+        confirmDownload.addEventListener('click', function() {
+            // Show loading spinner
+            document.getElementById('downloadOptions').style.display = 'none';
+            loadingSpinner.style.display = 'block';
+            
+            // Generate and download the document
+            setTimeout(() => {
+                if (selectedFormat === 'pdf') {
+                    downloadAsPDF();
+                } else {
+                    downloadAsImage();
+                }
+                
+                // Hide modal and reset UI
+                downloadModal.classList.remove('active');
+                document.getElementById('downloadOptions').style.display = 'block';
+                loadingSpinner.style.display = 'none';
+            }, 1500);
+        });
+        
+        // Download as PDF function
+        function downloadAsPDF() {
+            // In a real implementation, you would use jsPDF and html2canvas
+            // This is a simplified version for demonstration
+            
+            // Create a temporary element to capture
+            const tempElement = documentContent.cloneNode(true);
+            
+            // Remove delete buttons for the PDF
+            const deleteButtons = tempElement.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(btn => btn.remove());
+            
+            // Use html2canvas to capture the document as an image
+            html2canvas(tempElement, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+                const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+                const imgX = (pdfWidth - imgWidth * ratio) / 2;
+                const imgY = 10;
+                
+                pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+                pdf.save('signed-document.pdf');
+                
+                // Show success message
+                showDownloadSuccess('PDF');
+            });
+        }
+        
+        // Download as Image function
+        function downloadAsImage() {
+            // Create a temporary element to capture
+            const tempElement = documentContent.cloneNode(true);
+            
+            // Remove delete buttons for the image
+            const deleteButtons = tempElement.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(btn => btn.remove());
+            
+            // Use html2canvas to capture the document as an image
+            html2canvas(tempElement, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'signed-document.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // Show success message
+                showDownloadSuccess('PNG image');
+            });
+        }
+        
+        // Show download success message
+        function showDownloadSuccess(format) {
+            // Create a temporary success message
+            const successMsg = document.createElement('div');
+            successMsg.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+            successMsg.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>Document downloaded as ${format} successfully!</span>
+                </div>
+            `;
+            
+            document.body.appendChild(successMsg);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                successMsg.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+
+💡 Did you know that modern digital signatures use asymmetric cryptography to ensure that a document’s authenticity can be verified even without direct access to the signer?

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deiSign — Sign Document</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
+</head>
+
+<body class="bg-gray-50 flex flex-col items-center p-6">
+  <h1 class="text-2xl font-bold text-gray-800 mb-4">Sign Your Document</h1>
+
+  <div id="pdfContainer" class="relative border rounded-lg shadow overflow-hidden">
+    <canvas id="pdfCanvas"></canvas>
+
+    <!-- Signature Layer -->
+    <canvas id="signaturePad" class="absolute top-0 left-0"></canvas>
+  </div>
+
+  <div class="flex gap-3 mt-6">
+    <button id="clearBtn" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Clear</button>
+    <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Signed PDF</button>
+  </div>
+
+  <script>
+    const pdfData = localStorage.getItem("pdfData");
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    const canvas = document.getElementById("pdfCanvas");
+    const sigCanvas = document.getElementById("signaturePad");
+    const ctx = canvas.getContext("2d");
+
+    // Load PDF
+    const loadPDF = async () => {
+      if (!pdfData) return alert("No document loaded");
+      const pdf = await pdfjsLib.getDocument({ data: atob(pdfData.split(',')[1]) }).promise;
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1.5 });
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      sigCanvas.width = viewport.width;
+      sigCanvas.height = viewport.height;
+
+      const renderCtx = { canvasContext: ctx, viewport: viewport };
+      await page.render(renderCtx).promise;
+    };
+
+    loadPDF();
+
+    // Signature Pad setup
+    const signaturePad = new SignaturePad(sigCanvas, {
+      backgroundColor: 'rgba(255,255,255,0)',
+      penColor: 'blue',
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      signaturePad.clear();
+    });
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      if (signaturePad.isEmpty()) {
+        alert("Please sign before saving.");
+        return;
+      }
+
+      const pdfImage = canvas.toDataURL("image/png");
+      const signatureImage = sigCanvas.toDataURL("image/png");
+
+      // Combine both layers into a single image
+      const mergedCanvas = document.createElement("canvas");
+      mergedCanvas.width = canvas.width;
+      mergedCanvas.height = canvas.height;
+      const mergedCtx = mergedCanvas.getContext("2d");
+      const bg = new Image();
+      bg.src = pdfImage;
+      bg.onload = () => {
+        mergedCtx.drawImage(bg, 0, 0);
+        const sig = new Image();
+        sig.src = signatureImage;
+        sig.onload = () => {
+          mergedCtx.drawImage(sig, 0, 0);
+          const finalData = mergedCanvas.toDataURL("image/png");
+
+          // Download result
+          const link = document.createElement("a");
+          link.href = finalData;
+          link.download = "signed_document.png";
+          link.click();
+        };
+      };
+    });
+  </script>
+</body>
+</html>
