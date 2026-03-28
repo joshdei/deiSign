@@ -6,7 +6,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/pdf-to-word', function () {
+Route::get('/pdfword', function () {
     return view('pdfword');
 });
 
