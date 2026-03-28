@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>deiSign — Sign PDFs Instantly</title>
+  <title>pdf — Sign PDFs Instantly</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
@@ -223,6 +223,53 @@
     .glow {
       box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
     }
+
+    /* Tools Section CSS (PHASE 2 adapted to pdf) */
+    .tools-row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 32px;
+    }
+    .tool-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 32px 28px;
+      width: 280px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .tool-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+    }
+    .tool-icon { 
+      font-size: 36px; 
+      margin-bottom: 14px; 
+      display: block;
+    }
+    .tool-card h3 { 
+      font-size: 18px; 
+      font-weight: 600; 
+      margin-bottom: 8px; 
+      color: var(--dark);
+    }
+    .tool-card p { 
+      font-size: 14px; 
+      color: #6b7280; 
+      line-height: 1.6; 
+      margin-bottom: 16px;
+    }
+    .tool-btn {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+    }
     
     .share-option {
       border: 2px solid #e5e7eb;
@@ -286,11 +333,12 @@
       <div class="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center mr-3">
         <i class="fas fa-signature text-white"></i>
       </div>
-      <h1 class="text-2xl font-bold heading-font gradient-text">deiSign</h1>
+      <h1 class="text-2xl font-bold heading-font gradient-text">pdf</h1>
     </div>
     <nav class="space-x-8 hidden md:flex">
       <a href="#how-it-works" class="hover:text-indigo-600 font-medium transition-colors">How It Works</a>
       <a href="#features" class="hover:text-indigo-600 font-medium transition-colors">Features</a>
+      <a href="/pdf-to-word" class="hover:text-indigo-600 font-medium transition-colors">PDF to Word</a>
       <a href="#uploadSection" class="hover:text-indigo-600 font-medium transition-colors">Sign PDF</a>
       <a href="#footer" class="hover:text-indigo-600 font-medium transition-colors">Contact</a>
     </nav>
@@ -344,12 +392,41 @@
         </div>
       </div>
     </div>
-  </div>
-</section>
+    </div>
+  </section>
 
+  <!-- Tools Section (PHASE 2) -->
+  <section id="tools" class="py-20 px-6 bg-white">
+    <div class="max-w-6xl mx-auto text-center">
+      <h2 class="text-3xl font-bold mb-4 heading-font">Our Tools</h2>
+      <p class="text-gray-600 max-w-2xl mx-auto mb-16">Everything you need to work with PDF documents.</p>
+      <div class="tools-row">
+        <!-- Sign PDF Tool Card -->
+        <a href="#uploadSection" class="tool-card fade-in">
+          <div class="tool-icon">✍️</div>
+          <h3>Sign PDF</h3>
+          <p>Draw or type your signature directly on any PDF document.</p>
+          <span class="tool-btn">Sign Now →</span>
+        </a>
+        <!-- PDF to Word Tool Card -->
+        <a href="/pdf-to-word" class="tool-card fade-in">
+          <div class="tool-icon">📄→📝</div>
+          <h3>PDF to Word</h3>
+          <p>Convert PDF to editable Word (.docx)</p>
+          <span class="tool-btn">Convert →</span>
+        </a>
+        <a href="/word-to-pdf" class="tool-card fade-in">
+          <div class="tool-icon">📝→📄</div>
+          <h3>Word to PDF</h3>
+          <p>Convert Word to PDF with perfect formatting</p>
+          <span class="tool-btn">Convert →</span>
+        </a>
+      </div>
+    </div>
+  </section>
 
-<!-- Steps Section -->
-<section id="how-it-works" class="py-20 px-6 bg-gray-50">
+  <!-- Steps Section -->
+  <section id="how-it-works" class="py-20 px-6 bg-gray-50">
   <div class="max-w-6xl mx-auto">
     <h2 class="text-3xl font-bold text-center mb-4 heading-font">How It Works</h2>
     <p class="text-gray-600 text-center max-w-2xl mx-auto mb-16">Signing documents has never been easier. Follow these simple steps.</p>
@@ -577,7 +654,7 @@
 <!-- Features Section -->
 <section id="features" class="py-20 px-6 bg-white">
   <div class="max-w-6xl mx-auto">
-    <h2 class="text-3xl font-bold text-center mb-4 heading-font">Why Choose deiSign?</h2>
+    <h2 class="text-3xl font-bold text-center mb-4 heading-font">Why Choose pdf?</h2>
     <p class="text-gray-600 text-center max-w-2xl mx-auto mb-16">Our platform offers everything you need for seamless digital document signing.</p>
     
     <div class="grid md:grid-cols-3 gap-8">
@@ -616,7 +693,7 @@
         <div class="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center mr-3">
           <i class="fas fa-signature text-white"></i>
         </div>
-        <h3 class="font-bold text-xl heading-font">deiSign</h3>
+        <h3 class="font-bold text-xl heading-font">pdf</h3>
       </div>
       <p class="mb-6 max-w-md">Sign PDFs online instantly. Share, download, and manage your documents efficiently with our secure and user-friendly platform.</p>
       <div class="flex space-x-4">
@@ -636,6 +713,7 @@
       <ul class="space-y-2">
         <li><a href="#how-it-works" class="hover:text-indigo-400 transition-colors">How It Works</a></li>
         <li><a href="#features" class="hover:text-indigo-400 transition-colors">Features</a></li>
+        <li><a href="/pdf-to-word" class="hover:text-indigo-400 transition-colors">PDF to Word</a></li>
         <li><a href="#uploadSection" class="hover:text-indigo-400 transition-colors">Sign PDF</a></li>
         <li><a href="#footer" class="hover:text-indigo-400 transition-colors">Contact</a></li>
       </ul>
@@ -645,7 +723,7 @@
       <ul class="space-y-2">
         <li class="flex items-center">
           <i class="fas fa-envelope mr-3 text-indigo-400"></i>
-          <span>support@deisign.com</span>
+          <span>support@pdf.com</span>
         </li>
         <li class="flex items-center">
   <i class="fas fa-phone mr-3 text-indigo-400"></i>
@@ -662,7 +740,7 @@
     </div>
   </div>
   <div class="max-w-6xl mx-auto px-6 mt-12 pt-8 border-t border-gray-700">
-    <p class="text-center text-gray-400">&copy; 2025 deiSign. All rights reserved.</p>
+    <p class="text-center text-gray-400">&copy; 2025 pdf. All rights reserved.</p>
   </div>
 </footer>
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>deiSign | Interactive Document Signing</title>
+    <title>pdf | Interactive Document Signing</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -260,7 +260,7 @@
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <i class="fas fa-file-signature text-purple-600 text-2xl"></i>
-                <h1 class="text-xl font-bold text-gray-800">deiSign</h1>
+                <h1 class="text-xl font-bold text-gray-800">pdf</h1>
             </div>
             
             <!-- Desktop Menu -->
@@ -289,7 +289,7 @@
             <div class="flex justify-between items-center mb-8">
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-file-signature text-purple-600 text-2xl"></i>
-                    <h1 class="text-xl font-bold text-gray-800">deiSign</h1>
+                    <h1 class="text-xl font-bold text-gray-800">pdf</h1>
                 </div>
                 <button id="closeMenuButton" class="text-gray-600">
                     <i class="fas fa-times text-xl"></i>
@@ -323,7 +323,7 @@
         Sign Documents Online. No Printing. No Scanning.
       </h1>
       <p class="text-xl mb-8 opacity-90">
-        Upload, sign, and share documents digitally with deiSign. The fastest way to get documents signed.
+        Upload, sign, and share documents digitally with pdf. The fastest way to get documents signed.
       </p>
 
       <!-- Visual Process Steps -->
@@ -861,7 +861,7 @@ function makeDroppedItemDraggable(element) {
     <section class="py-16 gradient-bg text-white">
         <div class="container mx-auto px-4 text-center">
             <h2 class="text-3xl font-bold mb-4">Ready to Go Paperless?</h2>
-            <p class="text-xl max-w-2xl mx-auto mb-8 opacity-90">Join thousands of businesses and individuals who have streamlined their document signing process with deiSign.</p>
+            <p class="text-xl max-w-2xl mx-auto mb-8 opacity-90">Join thousands of businesses and individuals who have streamlined their document signing process with pdf.</p>
             <button class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition">
                 Get Started Free
             </button>
@@ -876,7 +876,7 @@ function makeDroppedItemDraggable(element) {
                 <div>
                     <div class="flex items-center space-x-2 mb-4">
                         <i class="fas fa-file-signature text-purple-400 text-2xl"></i>
-                        <h1 class="text-xl font-bold">deiSign</h1>
+                        <h1 class="text-xl font-bold">pdf</h1>
                     </div>
                     <p class="text-gray-400">The easiest way to sign documents online. No printing, no scanning.</p>
                 </div>
@@ -909,7 +909,7 @@ function makeDroppedItemDraggable(element) {
             </div>
             
             <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-                <p>&copy; 2023 deiSign. All rights reserved.</p>
+                <p>&copy; 2023 pdf. All rights reserved.</p>
             </div>
         </div>
     </footer>
