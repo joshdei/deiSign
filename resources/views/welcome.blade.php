@@ -409,7 +409,7 @@
           <span class="tool-btn">Sign Now →</span>
         </a>
         <!-- PDF to Word Tool Card -->
-        <a href="/pdf-to-word" class="tool-card fade-in">
+        <a href="/pdfword" class="tool-card fade-in">
           <div class="tool-icon">📄→📝</div>
           <h3>PDF to Word</h3>
           <p>Convert PDF to editable Word (.docx)</p>
