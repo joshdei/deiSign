@@ -7,9 +7,9 @@ Route::get('/', function () {
 });
 
 Route::get('/pdf-to-word', function () {
-    return view('pdf-to-word');
+    return view('pdfword');
 });
 
 Route::get('/word-to-pdf', function () {
-    return view('word-to-pdf');
+    return view('wordtopdf');
 });
