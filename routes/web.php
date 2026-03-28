@@ -11,5 +11,5 @@ Route::get('/pdfword', function () {
 });
 
 Route::get('/word-to-pdf', function () {
-    return view('wordtopdf');
+    return view('wordpdf');
 });
